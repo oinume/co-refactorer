@@ -212,7 +212,7 @@ func (a *App) CreateRefactoringResult(ctx context.Context, req *RefactoringReque
 //
 //}
 
-func (a *App) dumpOpenAIResponse(resp *openai.ChatCompletionResponse) {
+func (a *App) dumpOpenAIResponse(resp *openai.ChatCompletionResponse) { //nolint:unused
 	fmt.Printf("Choices:\n")
 	for i, choice := range resp.Choices {
 		fmt.Printf("  %d. Text: %s\n", i, choice.Message.Content)
