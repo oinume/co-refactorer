@@ -1,0 +1,3 @@
+このPR(https://github.com/oinume/co-refactorer/pull/1)を参考にして、以下のファイルをリファクタリングしてください。
+
+- types.go
