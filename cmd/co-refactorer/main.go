@@ -133,5 +133,5 @@ func (c *cli) getQuery(query *string, queryFile *string) (string, error) {
 }
 
 func (c *cli) outputError(err error) {
-	_, _ = fmt.Fprintf(c.err, err.Error())
+	_, _ = fmt.Fprintln(c.err, err.Error())
 }
