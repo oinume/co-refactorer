@@ -1,2 +1,2 @@
-# corefactorer
+# co-refactorer
 Refactoring with LLM
