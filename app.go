@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -17,13 +18,15 @@ import (
 )
 
 type App struct {
+	logger       *slog.Logger
 	openAIClient *openai.Client
 	githubClient *github.Client
 	httpClient   *http.Client
 }
 
-func New(openAIClient *openai.Client, githubClient *github.Client, httpClient *http.Client) *App {
+func New(logger *slog.Logger, openAIClient *openai.Client, githubClient *github.Client, httpClient *http.Client) *App {
 	return &App{
+		logger:       logger,
 		openAIClient: openAIClient,
 		githubClient: githubClient,
 		httpClient:   httpClient,
@@ -211,7 +214,10 @@ func (a *App) ApplyRefactoringResult(ctx context.Context, result *RefactoringRes
 	}
 
 	for _, tf := range targetFiles {
-		//fmt.Printf("--- %s ---\n%s\n", tf.Path, tf.Content)
+		a.logger.Debug(
+			"Applying refactoring result",
+			slog.String("path", tf.Path), slog.String("content", tf.Content),
+		)
 		f, err := os.OpenFile(tf.Path, os.O_RDWR, 0644)
 		if err != nil {
 			return fmt.Errorf("failed to open file '%s': %w", tf.Path, err)
@@ -220,7 +226,7 @@ func (a *App) ApplyRefactoringResult(ctx context.Context, result *RefactoringRes
 		if _, err := fmt.Fprintf(f, "%s", tf.Content); err != nil {
 			return fmt.Errorf("failed to write content to file '%s': %w", tf.Path, err)
 		}
-		fmt.Printf("%s is modified\n", tf.Path)
+		a.logger.Info(fmt.Sprintf("%s is modified", tf.Path))
 	}
 
 	return nil
@@ -231,7 +237,7 @@ func (a *App) parseMarkdownContent(content string) ([]*TargetFile, error) {
 	if err := goldmark.Convert([]byte(content), &out); err != nil {
 		return nil, err
 	}
-	// fmt.Printf("--- after convert ---\n%s", out.String())
+	a.logger.Debug("After goldmark.Convert", slog.String("html", out.String()))
 
 	doc, err := htmlquery.Parse(&out)
 	if err != nil {
