@@ -50,6 +50,12 @@ func parsePullRequestURL(u string) (owner string, repo string, number uint64, er
 		return "", "", 0, err
 	}
 	// URL is like this: https://github.com/oinume/path-shrinker/pull/16
+	if parsedURL.Scheme != "https" {
+		return "", "", 0, fmt.Errorf("URL scheme must be https")
+	}
+	if parsedURL.Hostname() != "github.com" { // TODO: should be configurable
+		return "", "", 0, fmt.Errorf("URL hostname must be github.com")
+	}
 	parts := strings.Split(strings.Trim(parsedURL.Path, "/"), "/")
 	if len(parts) < 4 || parts[2] != "pull" {
 		return "", "", 0, fmt.Errorf("URL format is incorrect")
