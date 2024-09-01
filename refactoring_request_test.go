@@ -29,15 +29,15 @@ func Test_RefactoringRequest_CreatePrompt(t *testing.T) {
 			rr := &RefactoringRequest{
 				PullRequests: tt.fields.PullRequests,
 				TargetFiles:  tt.fields.TargetFiles,
-				Prompt:       tt.fields.Prompt,
+				UserPrompt:   tt.fields.Prompt,
 			}
-			got, err := rr.CreatePrompt()
+			got, err := rr.CreateAssistanceMessage()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("CreatePrompt() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("CreateAssistanceMessage() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("CreatePrompt() got = %v, want %v", got, tt.want)
+				t.Errorf("CreateAssistanceMessage() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -27,6 +27,7 @@ func New(openAIClient *openai.Client, githubClient *github.Client, httpClient *h
 	}
 }
 
+// CreateRefactoringTarget creates `RefactoringTarget` from the given prompt with OpenAI FunctionCalling feature
 func (a *App) CreateRefactoringTarget(ctx context.Context, prompt string) (*RefactoringTarget, error) {
 	resp, err := a.openAIClient.CreateChatCompletion(
 		ctx,
@@ -81,13 +82,13 @@ func (a *App) CreateRefactoringTarget(ctx context.Context, prompt string) (*Refa
 	}
 
 	target := &RefactoringTarget{
-		Prompt:     prompt,
+		UserPrompt: prompt,
 		ToolCallID: toolCalls[0].ID,
 	}
 	for _, toolCall := range toolCalls {
 		var tmp RefactoringTarget
 		if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &tmp); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to json.Unmarshal: %w", err)
 		}
 		target.PullRequestURLs = append(target.PullRequestURLs, tmp.PullRequestURLs...)
 		target.Files = append(target.Files, tmp.Files...)
@@ -96,10 +97,12 @@ func (a *App) CreateRefactoringTarget(ctx context.Context, prompt string) (*Refa
 	return target.Unique(), nil
 }
 
+// CreateRefactoringRequest creates `RefactoringRequest`.
+// It fetches pull request content from GitHub and file content local machine.
 func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringTarget) (*RefactoringRequest, error) {
 	request := &RefactoringRequest{
 		ToolCallID: target.ToolCallID,
-		Prompt:     target.Prompt,
+		UserPrompt: target.UserPrompt,
 	}
 	for _, prURL := range target.PullRequestURLs {
 		owner, repo, number, err := parsePullRequestURL(prURL)
@@ -142,7 +145,7 @@ func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringT
 		}
 		content, err := io.ReadAll(file)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read file '%s': %w", f, err)
+			return nil, fmt.Errorf("failed to read file content '%s': %w", f, err)
 		}
 		request.TargetFiles = append(request.TargetFiles, &TargetFile{
 			Path:    f,
@@ -153,27 +156,29 @@ func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringT
 	return request, nil
 }
 
+// CreateRefactoringResult sends a request of refactoring finally.
+// The chat message of API request includes original user prompt and pull request info and file content in given `RefactoringRequest`.
 func (a *App) CreateRefactoringResult(ctx context.Context, req *RefactoringRequest) (*RefactoringResult, error) {
-	extraPrompt, err := req.CreatePrompt()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create extraPrompt: %w", err)
-	}
-	fmt.Printf("--- extraPrompt ---\n%s", extraPrompt)
-
 	// TODO: https://platform.openai.com/docs/guides/function-calling
 	// Preserve first result message
-	// 1. Original extraPrompt
+	// 1. Original assistanceMessage
 	// 2. Preserved first result message
 	// 3. PR info and file content
+	assistanceMessage, err := req.CreateAssistanceMessage()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create assistance message: %w", err)
+	}
+	// fmt.Printf("--- assistanceMessage ---\n%s", assistanceMessage)
+
 	messages := make([]openai.ChatCompletionMessage, 0, 5)
 	messages = append(messages, []openai.ChatCompletionMessage{
 		{
 			Role:    openai.ChatMessageRoleUser,
-			Content: req.Prompt,
+			Content: req.UserPrompt,
 		},
 		{
 			Role:    openai.ChatMessageRoleAssistant,
-			Content: extraPrompt,
+			Content: assistanceMessage,
 		},
 	}...)
 

@@ -7,6 +7,9 @@ import (
 	"text/template"
 )
 
+//go:embed prompt.template
+var promptTemplate string
+
 type PullRequest struct {
 	URL   string
 	Title string
@@ -19,17 +22,18 @@ type TargetFile struct {
 	Content string
 }
 
-//go:embed prompt.template
-var promptTemplate string
-
 type RefactoringRequest struct {
+	// UserPrompt is a message given from user
+	UserPrompt string
+	// ToolCallID is an ID of ToolCall in first chat completion. It'll be used in the future.
+	ToolCallID string
+	// PullRequests is a list of pull requests to be referred. Currently only 1st PR is used.
 	PullRequests []*PullRequest
-	TargetFiles  []*TargetFile
-	Prompt       string
-	ToolCallID   string
+	// TargetFiles is a list of files to be refactored.
+	TargetFiles []*TargetFile
 }
 
-func (rr *RefactoringRequest) CreatePrompt() (string, error) {
+func (rr *RefactoringRequest) CreateAssistanceMessage() (string, error) {
 	var sb strings.Builder
 	t, err := template.New("prompt").Parse(promptTemplate)
 	if err != nil {
