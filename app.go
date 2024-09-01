@@ -80,7 +80,10 @@ func (a *App) CreateRefactoringTarget(ctx context.Context, prompt string) (*Refa
 		return nil, fmt.Errorf("no tool_calls in response")
 	}
 
-	target := &RefactoringTarget{}
+	target := &RefactoringTarget{
+		Prompt:     prompt,
+		ToolCallID: toolCalls[0].ID,
+	}
 	for _, toolCall := range toolCalls {
 		var tmp RefactoringTarget
 		if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &tmp); err != nil {
@@ -94,7 +97,10 @@ func (a *App) CreateRefactoringTarget(ctx context.Context, prompt string) (*Refa
 }
 
 func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringTarget) (*RefactoringRequest, error) {
-	request := &RefactoringRequest{}
+	request := &RefactoringRequest{
+		ToolCallID: target.ToolCallID,
+		Prompt:     target.Prompt,
+	}
 	for _, prURL := range target.PullRequestURLs {
 		owner, repo, number, err := parsePullRequestURL(prURL)
 		if err != nil {
@@ -121,9 +127,11 @@ func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringT
 		}
 
 		request.PullRequests = append(request.PullRequests, &PullRequest{
+			URL:  prURL,
+			Diff: string(diff),
+			// Title and Body are not used yet, maybe use them in the future.
 			Title: pr.GetTitle(),
 			Body:  pr.GetBody(),
-			Diff:  string(diff),
 		})
 	}
 
@@ -146,54 +154,34 @@ func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringT
 }
 
 func (a *App) CreateRefactoringResult(ctx context.Context, req *RefactoringRequest) (*RefactoringResult, error) {
-	prompt, err := req.CreatePrompt()
+	extraPrompt, err := req.CreatePrompt()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create prompt: %w", err)
+		return nil, fmt.Errorf("failed to create extraPrompt: %w", err)
 	}
-	//fmt.Printf("--- prompt ---\n%s", prompt)
+	fmt.Printf("--- extraPrompt ---\n%s", extraPrompt)
+
+	// TODO: https://platform.openai.com/docs/guides/function-calling
+	// Preserve first result message
+	// 1. Original extraPrompt
+	// 2. Preserved first result message
+	// 3. PR info and file content
+	messages := make([]openai.ChatCompletionMessage, 0, 5)
+	messages = append(messages, []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleUser,
+			Content: req.Prompt,
+		},
+		{
+			Role:    openai.ChatMessageRoleAssistant,
+			Content: extraPrompt,
+		},
+	}...)
 
 	resp, err := a.openAIClient.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model: openai.GPT4oMini,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: prompt,
-				},
-			},
-			//Tools: []openai.Tool{
-			//	{
-			//		Type: openai.ToolTypeFunction,
-			//		Function: &openai.FunctionDefinition{
-			//			Name: "extractRefactoringTarget",
-			//			Parameters: &jsonschema.Definition{
-			//				Type: jsonschema.Object,
-			//				Properties: map[string]jsonschema.Definition{
-			//					"files": {
-			//						Type:        jsonschema.Array,
-			//						Description: "List of target files to be refactored",
-			//						Items: &jsonschema.Definition{
-			//							Type: jsonschema.Object,
-			//							Properties: map[string]jsonschema.Definition{
-			//								"path": {
-			//									Type:        jsonschema.String,
-			//									Description: "Path to the file",
-			//								},
-			//								"content": {
-			//									Type:        jsonschema.String,
-			//									Description: "Content of the file",
-			//								},
-			//							},
-			//							Required: []string{"path", "content"},
-			//						},
-			//					},
-			//				},
-			//				Required: []string{"files"},
-			//			},
-			//		},
-			//	},
-			//},
+			Model:    openai.GPT4oMini,
+			Messages: messages,
 		},
 	)
 	if err != nil {

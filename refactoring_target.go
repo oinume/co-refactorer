@@ -13,6 +13,8 @@ import (
 type RefactoringTarget struct {
 	PullRequestURLs []string
 	Files           []string
+	Prompt          string
+	ToolCallID      string
 }
 
 func (rt *RefactoringTarget) Unique() *RefactoringTarget {

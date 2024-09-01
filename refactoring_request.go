@@ -8,6 +8,7 @@ import (
 )
 
 type PullRequest struct {
+	URL   string
 	Title string
 	Body  string
 	Diff  string
@@ -25,6 +26,7 @@ type RefactoringRequest struct {
 	PullRequests []*PullRequest
 	TargetFiles  []*TargetFile
 	Prompt       string
+	ToolCallID   string
 }
 
 func (rr *RefactoringRequest) CreatePrompt() (string, error) {
@@ -39,13 +41,15 @@ func (rr *RefactoringRequest) CreatePrompt() (string, error) {
 		paths = append(paths, tf.Path)
 	}
 	data := struct {
-		Diff        string
-		TargetFiles []*TargetFile
-		TargetPaths string
+		PullRequestURL string
+		Diff           string
+		TargetFiles    []*TargetFile
+		TargetPaths    string
 	}{
-		Diff:        rr.PullRequests[0].Diff,
-		TargetFiles: rr.TargetFiles,
-		TargetPaths: strings.Join(paths, ", "),
+		PullRequestURL: rr.PullRequests[0].URL,
+		Diff:           rr.PullRequests[0].Diff,
+		TargetFiles:    rr.TargetFiles,
+		TargetPaths:    strings.Join(paths, ", "),
 	}
 	if err := t.Execute(&sb, &data); err != nil {
 		return "", fmt.Errorf("failed to template execute: %w", err)
