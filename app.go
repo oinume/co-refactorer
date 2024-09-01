@@ -1,6 +1,7 @@
 package corefactorer
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,9 +9,11 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/antchfx/htmlquery"
 	"github.com/google/go-github/v64/github"
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
+	"github.com/yuin/goldmark"
 )
 
 type App struct {
@@ -156,8 +159,8 @@ func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringT
 	return request, nil
 }
 
-// CreateRefactoringResult sends a request of refactoring finally.
-// The chat message of API request includes original user prompt and pull request info and file content in given `RefactoringRequest`.
+// CreateRefactoringResult sends a request of refactoring to OpenAI API.
+// The chat message in the request includes an original user prompt and fetched pull-request info and file content in given `RefactoringRequest`.
 func (a *App) CreateRefactoringResult(ctx context.Context, req *RefactoringRequest) (*RefactoringResult, error) {
 	// TODO: https://platform.openai.com/docs/guides/function-calling
 	// Preserve first result message
@@ -201,9 +204,55 @@ func (a *App) CreateRefactoringResult(ctx context.Context, req *RefactoringReque
 	}, nil
 }
 
-//func (a *App) ApplyRefactoringResult() error {
-//
-//}
+func (a *App) ApplyRefactoringResult(ctx context.Context, result *RefactoringResult) error {
+	targetFiles, err := a.parseMarkdownContent(result.RawContent)
+	if err != nil {
+		return err
+	}
+
+	for _, tf := range targetFiles {
+		//fmt.Printf("--- %s ---\n%s\n", tf.Path, tf.Content)
+		f, err := os.OpenFile(tf.Path, os.O_RDWR, 0644)
+		if err != nil {
+			return fmt.Errorf("failed to open file '%s': %w", tf.Path, err)
+		}
+		defer f.Close()
+		if _, err := fmt.Fprintf(f, "%s", tf.Content); err != nil {
+			return fmt.Errorf("failed to write content to file '%s': %w", tf.Path, err)
+		}
+		fmt.Printf("%s is modified\n", tf.Path)
+	}
+
+	return nil
+}
+
+func (a *App) parseMarkdownContent(content string) ([]*TargetFile, error) {
+	var out bytes.Buffer
+	if err := goldmark.Convert([]byte(content), &out); err != nil {
+		return nil, err
+	}
+	// fmt.Printf("--- after convert ---\n%s", out.String())
+
+	doc, err := htmlquery.Parse(&out)
+	if err != nil {
+		return nil, err
+	}
+
+	headings := htmlquery.Find(doc, "//h3/text()")
+	codes := htmlquery.Find(doc, "//pre/code/text()")
+	if len(headings) != len(codes) {
+		return nil, fmt.Errorf("failed parse markdown content: number of headings and codes are not matched")
+	}
+
+	targetFiles := make([]*TargetFile, len(headings))
+	for i := 0; i < len(headings); i++ {
+		targetFiles[i] = &TargetFile{
+			Path:    headings[i].Data,
+			Content: codes[i].Data,
+		}
+	}
+	return targetFiles, nil
+}
 
 func (a *App) dumpOpenAIResponse(resp *openai.ChatCompletionResponse) { //nolint:unused
 	fmt.Printf("Choices:\n")
