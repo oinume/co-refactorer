@@ -1,6 +1,7 @@
 # co-refactorer
 Refactoring with LLM.
 
+NOTE: This is a prototype and not ready for production use. Use at your own risk.
 
 ## Prerequisites
 
@@ -36,18 +37,4 @@ Then, run co-refactorer with the prompt.
 OPENAI_API_KEY='<YourAPIKey>' ./bin/co-refactorer < example-prompt1.txt
 ```
 
-Then, co-refactorer will output the refactored file. You can overwrite the original file with the output. After that, you may make a pull-request with the refactored file.
-```
-### refactoring_request_test.go
-```go
-package corefactorer
-
-import (
-	"strings"
-	"testing"
-)
-
-func Test_RefactoringRequest_CreateAssistanceMessage(t *testing.T) {
-...
-}
-```
+Then, co-refactorer will overwrite the target files with refactored code. After that, you may make a pull-request with the refactored file.
