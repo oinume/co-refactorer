@@ -211,7 +211,7 @@ func (a *App) ApplyRefactoringResult(ctx context.Context, result *RefactoringRes
 	}
 
 	for _, tf := range targetFiles {
-		fmt.Printf("--- %s ---\n%s\n", tf.Path, tf.Content)
+		//fmt.Printf("--- %s ---\n%s\n", tf.Path, tf.Content)
 		f, err := os.OpenFile(tf.Path, os.O_RDWR, 0644)
 		if err != nil {
 			return fmt.Errorf("failed to open file '%s': %w", tf.Path, err)
@@ -220,6 +220,7 @@ func (a *App) ApplyRefactoringResult(ctx context.Context, result *RefactoringRes
 		if _, err := fmt.Fprintf(f, "%s", tf.Content); err != nil {
 			return fmt.Errorf("failed to write content to file '%s': %w", tf.Path, err)
 		}
+		fmt.Printf("%s is modified\n", tf.Path)
 	}
 
 	return nil
