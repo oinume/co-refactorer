@@ -32,10 +32,17 @@ func Test_App_ApplyRefactoringResult(t *testing.T) {
 				ctx: context.Background(),
 				result: &RefactoringResult{
 					RawContent: fmt.Sprintf(`
-### refactoring_request_test.go
+### a.go
 
 %s
-`, "```package main```"),
+
+### b.go
+
+%s
+`,
+						"```\npackage main\nimport \"fmt\"\n```",
+						"```\npackage main\nimport \"os\"\n```",
+					),
 				},
 			},
 		},

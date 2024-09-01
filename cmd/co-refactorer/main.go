@@ -89,8 +89,12 @@ func (c *cli) run(args []string) int {
 		c.outputError(err)
 		return ExitError
 	}
-	_, err = fmt.Fprintln(c.out, result.RawContent)
-	if err != nil {
+	//_, err = fmt.Fprintln(c.out, result.RawContent)
+	//if err != nil {
+	//	c.outputError(err)
+	//	return ExitError
+	//}
+	if err := app.ApplyRefactoringResult(ctx, result); err != nil {
 		c.outputError(err)
 		return ExitError
 	}

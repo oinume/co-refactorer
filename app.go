@@ -1,13 +1,13 @@
 package corefactorer
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/antchfx/htmlquery"
 
@@ -206,30 +206,52 @@ func (a *App) CreateRefactoringResult(ctx context.Context, req *RefactoringReque
 }
 
 func (a *App) ApplyRefactoringResult(ctx context.Context, result *RefactoringResult) error {
-	//markdown := goldmark.New()
-	//doc := markdown.Parser().Parse(text.NewReader([]byte(result.RawContent)))
-	//doc.FirstChild()
-	var out strings.Builder
-	if err := goldmark.Convert([]byte(result.RawContent), &out); err != nil {
-		return err
-	}
-	fmt.Printf("--- after convert ---\n%s", out.String())
-
-	doc, err := htmlquery.Parse(strings.NewReader(out.String()))
+	targetFiles, err := a.parseMarkdownContent(result.RawContent)
 	if err != nil {
 		return err
 	}
-	headings := htmlquery.Find(doc, "//h3/text()")
-	for _, h := range headings {
-		fmt.Printf("Path: %s\n", h.Data)
-	}
 
-	codes := htmlquery.Find(doc, "//h3/following-sibling::p[1]/code/text()")
-	for _, c := range codes {
-		fmt.Printf("--- code ---\n%s\n", c.Data)
+	for _, tf := range targetFiles {
+		fmt.Printf("--- %s ---\n%s\n", tf.Path, tf.Content)
+		f, err := os.OpenFile(tf.Path, os.O_RDWR, 0644)
+		if err != nil {
+			return fmt.Errorf("failed to open file '%s': %w", tf.Path, err)
+		}
+		defer f.Close()
+		if _, err := fmt.Fprintf(f, "%s", tf.Content); err != nil {
+			return fmt.Errorf("failed to write content to file '%s': %w", tf.Path, err)
+		}
 	}
 
 	return nil
+}
+
+func (a *App) parseMarkdownContent(content string) ([]*TargetFile, error) {
+	var out bytes.Buffer
+	if err := goldmark.Convert([]byte(content), &out); err != nil {
+		return nil, err
+	}
+	// fmt.Printf("--- after convert ---\n%s", out.String())
+
+	doc, err := htmlquery.Parse(&out)
+	if err != nil {
+		return nil, err
+	}
+
+	headings := htmlquery.Find(doc, "//h3/text()")
+	codes := htmlquery.Find(doc, "//pre/code/text()")
+	if len(headings) != len(codes) {
+		return nil, fmt.Errorf("failed parse markdown content: number of headings and codes are not matched")
+	}
+
+	targetFiles := make([]*TargetFile, len(headings))
+	for i := 0; i < len(headings); i++ {
+		targetFiles[i] = &TargetFile{
+			Path:    headings[i].Data,
+			Content: codes[i].Data,
+		}
+	}
+	return targetFiles, nil
 }
 
 func (a *App) dumpOpenAIResponse(resp *openai.ChatCompletionResponse) { //nolint:unused
