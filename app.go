@@ -7,10 +7,14 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
+
+	"github.com/antchfx/htmlquery"
 
 	"github.com/google/go-github/v64/github"
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
+	"github.com/yuin/goldmark"
 )
 
 type App struct {
@@ -156,8 +160,8 @@ func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringT
 	return request, nil
 }
 
-// CreateRefactoringResult sends a request of refactoring finally.
-// The chat message of API request includes original user prompt and pull request info and file content in given `RefactoringRequest`.
+// CreateRefactoringResult sends a request of refactoring to OpenAI API.
+// The chat message in the request includes an original user prompt and fetched pull-request info and file content in given `RefactoringRequest`.
 func (a *App) CreateRefactoringResult(ctx context.Context, req *RefactoringRequest) (*RefactoringResult, error) {
 	// TODO: https://platform.openai.com/docs/guides/function-calling
 	// Preserve first result message
@@ -201,9 +205,32 @@ func (a *App) CreateRefactoringResult(ctx context.Context, req *RefactoringReque
 	}, nil
 }
 
-//func (a *App) ApplyRefactoringResult() error {
-//
-//}
+func (a *App) ApplyRefactoringResult(ctx context.Context, result *RefactoringResult) error {
+	//markdown := goldmark.New()
+	//doc := markdown.Parser().Parse(text.NewReader([]byte(result.RawContent)))
+	//doc.FirstChild()
+	var out strings.Builder
+	if err := goldmark.Convert([]byte(result.RawContent), &out); err != nil {
+		return err
+	}
+	fmt.Printf("--- after convert ---\n%s", out.String())
+
+	doc, err := htmlquery.Parse(strings.NewReader(out.String()))
+	if err != nil {
+		return err
+	}
+	headings := htmlquery.Find(doc, "//h3/text()")
+	for _, h := range headings {
+		fmt.Printf("Path: %s\n", h.Data)
+	}
+
+	codes := htmlquery.Find(doc, "//h3/following-sibling::p[1]/code/text()")
+	for _, c := range codes {
+		fmt.Printf("--- code ---\n%s\n", c.Data)
+	}
+
+	return nil
+}
 
 func (a *App) dumpOpenAIResponse(resp *openai.ChatCompletionResponse) { //nolint:unused
 	fmt.Printf("Choices:\n")
