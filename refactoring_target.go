@@ -11,6 +11,10 @@ import (
 )
 
 type RefactoringTarget struct {
+	// UserPrompt is a message given from user
+	UserPrompt string
+	// ToolCallID is an ID of ToolCall in first chat completion. It'll be used in the future.
+	ToolCallID      string
 	PullRequestURLs []string
 	Files           []string
 }
