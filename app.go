@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"github.com/antchfx/htmlquery"
-
 	"github.com/google/go-github/v64/github"
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"

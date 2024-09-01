@@ -1,7 +1,6 @@
 package corefactorer
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -10,15 +9,14 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-func Test_App_ApplyRefactoringResult(t *testing.T) {
+func Test_App_parseMarkdownContent(t *testing.T) {
 	type fields struct {
-		openAIClient *openai.Client
-		githubClient *github.Client
-		httpClient   *http.Client
+		openAIClient *openai.Client //nolint:unused
+		githubClient *github.Client //nolint:unused
+		httpClient   *http.Client   //nolint:unused
 	}
 	type args struct {
-		ctx    context.Context
-		result *RefactoringResult
+		content string
 	}
 	tests := []struct {
 		name    string
@@ -29,9 +27,7 @@ func Test_App_ApplyRefactoringResult(t *testing.T) {
 		{
 			name: "ok",
 			args: args{
-				ctx: context.Background(),
-				result: &RefactoringResult{
-					RawContent: fmt.Sprintf(`
+				content: fmt.Sprintf(`
 ### a.go
 
 %s
@@ -40,17 +36,17 @@ func Test_App_ApplyRefactoringResult(t *testing.T) {
 
 %s
 `,
-						"```\npackage main\nimport \"fmt\"\n```",
-						"```\npackage main\nimport \"os\"\n```",
-					),
-				},
+					"```go\npackage main\nimport \"fmt\"\n```",
+					"```go\npackage main\nimport \"os\"\n```",
+				),
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			app := New(nil, nil, nil)
-			if err := app.ApplyRefactoringResult(tt.args.ctx, tt.args.result); (err != nil) != tt.wantErr {
+			// TODO: Check result
+			if _, err := app.parseMarkdownContent(tt.args.content); (err != nil) != tt.wantErr {
 				t.Errorf("ApplyRefactoringResult() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
