@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -20,16 +21,18 @@ const (
 )
 
 type cli struct {
-	in  io.Reader
-	out io.Writer
-	err io.Writer
+	in     io.Reader
+	out    io.Writer
+	err    io.Writer
+	logger *slog.Logger
 }
 
 func newCLI(in io.Reader, out, err io.Writer) *cli {
 	return &cli{
-		in:  in,
-		out: out,
-		err: err,
+		in:     in,
+		out:    out,
+		err:    err,
+		logger: createLogger(out),
 	}
 }
 
@@ -42,21 +45,22 @@ func (c *cli) run(args []string) int {
 	flagSet := flag.NewFlagSet("co-refactorer", flag.ContinueOnError)
 	flagSet.SetOutput(c.err)
 	var (
-		query     = flagSet.String("query", "", "Query for LLM")
-		queryFile = flagSet.String("query-file", "", "Specify query file for LLM")
+		flagPrompt     = flagSet.String("flagPrompt", "", "Prompt for LLM")
+		flagPromptFile = flagSet.String("flagPrompt-file", "", "Specify flagPrompt file for LLM")
 	)
 	if err := flagSet.Parse(args[1:]); err != nil {
 		flagSet.Usage()
 		return ExitError
 	}
 
-	queryContent, err := c.getQuery(query, queryFile)
+	prompt, err := c.getPrompt(flagPrompt, flagPromptFile)
 	if err != nil {
 		c.outputError(err)
 		return ExitError
 	}
+	c.logger.Debug("prompt", slog.String("prompt", prompt))
 
-	openAIClient, err := c.createOpenAIClient()
+	openAIClient, err := createOpenAIClient()
 	if err != nil {
 		c.outputError(err)
 		return ExitError
@@ -64,15 +68,17 @@ func (c *cli) run(args []string) int {
 	httpClient := http.DefaultClient
 	githubClient := github.NewClient(nil)
 	//githubClient.WithAuthToken()
-	app := corefactorer.New(openAIClient, githubClient, httpClient)
-	ctx := context.Background()
+	app := corefactorer.New(c.logger, openAIClient, githubClient, httpClient)
+	c.logger.Debug("App created")
 
-	target, err := app.CreateRefactoringTarget(ctx, queryContent)
+	ctx := context.Background()
+	target, err := app.CreateRefactoringTarget(ctx, prompt)
 	if err != nil {
 		c.outputError(err)
 		return ExitError
 	}
-	//fmt.Printf("target = %v\n", target)
+	c.logger.Debug("CreateRefactoringTarget succeeded", slog.Any("target", target))
+
 	if err := target.Validate(); err != nil {
 		c.outputError(err)
 		return ExitError
@@ -83,26 +89,33 @@ func (c *cli) run(args []string) int {
 		c.outputError(err)
 		return ExitError
 	}
+	c.logger.Debug("CreateRefactoringRequest succeeded", slog.Any("request", request))
 
 	result, err := app.CreateRefactoringResult(ctx, request)
 	if err != nil {
 		c.outputError(err)
 		return ExitError
 	}
-	//_, err = fmt.Fprintln(c.out, result.RawContent)
-	//if err != nil {
-	//	c.outputError(err)
-	//	return ExitError
-	//}
+	c.logger.Debug("CreateRefactoringResult succeeded", slog.Any("result.RawContent", result.RawContent))
+
 	if err := app.ApplyRefactoringResult(ctx, result); err != nil {
 		c.outputError(err)
 		return ExitError
 	}
+	c.logger.Debug("ApplyRefactoringResult succeeded")
 
 	return ExitOK
 }
 
-func (c *cli) createOpenAIClient() (*openai.Client, error) {
+func createLogger(out io.Writer) *slog.Logger {
+	logLevel := slog.LevelInfo
+	if os.Getenv("DEBUG") == "true" {
+		logLevel = slog.LevelDebug
+	}
+	return slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{Level: logLevel}))
+}
+
+func createOpenAIClient() (*openai.Client, error) {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
 		return nil, fmt.Errorf("env var OPENAI_API_KEY is not defined")
@@ -110,7 +123,7 @@ func (c *cli) createOpenAIClient() (*openai.Client, error) {
 	return openai.NewClient(apiKey), nil
 }
 
-func (c *cli) getQuery(query *string, queryFile *string) (string, error) {
+func (c *cli) getPrompt(query *string, queryFile *string) (string, error) {
 	var queryContent string
 	if *query != "" {
 		queryContent = *query
