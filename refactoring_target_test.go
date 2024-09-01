@@ -1,6 +1,56 @@
 package corefactorer
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
+
+func TestRefactoringTarget_Unique(t *testing.T) {
+	type fields struct {
+		PullRequestURLs []string
+		Files           []string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   *RefactoringTarget
+	}{
+		{
+			name: "ok",
+			fields: fields{
+				PullRequestURLs: []string{
+					"https://github.com/oinume/co-refactorer/pull/1",
+					"https://github.com/oinume/co-refactorer/pull/1",
+				},
+				Files: []string{
+					"a.go",
+					"b.go",
+					"a.go",
+				},
+			},
+			want: &RefactoringTarget{
+				PullRequestURLs: []string{
+					"https://github.com/oinume/co-refactorer/pull/1",
+				},
+				Files: []string{
+					"a.go",
+					"b.go",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rt := &RefactoringTarget{
+				PullRequestURLs: tt.fields.PullRequestURLs,
+				Files:           tt.fields.Files,
+			}
+			if got := rt.Unique(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Unique() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func Test_parsePullRequestURL(t *testing.T) {
 	type args struct {
