@@ -66,8 +66,7 @@ func (c *cli) run(args []string) int {
 		return ExitError
 	}
 	httpClient := http.DefaultClient
-	githubClient := github.NewClient(nil)
-	//githubClient.WithAuthToken()
+	githubClient := createGitHubClient(nil)
 	app := corefactorer.New(c.logger, openAIClient, githubClient, httpClient)
 	c.logger.Debug("App created")
 
@@ -121,6 +120,15 @@ func createOpenAIClient() (*openai.Client, error) {
 		return nil, fmt.Errorf("env var OPENAI_API_KEY is not defined")
 	}
 	return openai.NewClient(apiKey), nil
+}
+
+func createGitHubClient(httpClient *http.Client) *github.Client {
+	c := github.NewClient(httpClient)
+	token := os.Getenv("GITHUB_TOKEN")
+	if token != "" {
+		c = c.WithAuthToken(token)
+	}
+	return c
 }
 
 func (c *cli) getPrompt(query *string, queryFile *string) (string, error) {

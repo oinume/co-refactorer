@@ -117,6 +117,7 @@ func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringT
 		}
 		pr, _, err := a.githubClient.PullRequests.Get(ctx, owner, repo, int(number))
 		if err != nil {
+			// TODO: More readable error message like `failed to retrieve the pull-request. You may not have permission to access it.`
 			return nil, fmt.Errorf("failed to get pull-request content '%s': %w", prURL, err)
 		}
 
@@ -130,6 +131,9 @@ func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringT
 			return nil, fmt.Errorf("failed to Do HTTP request: %w", err)
 		}
 		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("failed to get a diff of pull-request: status code from GitHub is %d: %s", resp.StatusCode, resp.Status)
+		}
 		diff, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read response body: %w", err)
