@@ -34,7 +34,12 @@ func New(logger *slog.Logger, openAIClient *openai.Client, githubClient *github.
 }
 
 // CreateRefactoringTarget creates `RefactoringTarget` from the given prompt with OpenAI FunctionCalling feature
-func (a *App) CreateRefactoringTarget(ctx context.Context, prompt, model string) (*RefactoringTarget, error) {
+func (a *App) CreateRefactoringTarget(
+	ctx context.Context,
+	prompt string,
+	model string,
+	temperature float32,
+) (*RefactoringTarget, error) {
 	resp, err := a.openAIClient.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
@@ -45,7 +50,7 @@ func (a *App) CreateRefactoringTarget(ctx context.Context, prompt, model string)
 				},
 			},
 			Model:       model,
-			Temperature: 0.1,
+			Temperature: temperature,
 			Tools: []openai.Tool{
 				{
 					Type: openai.ToolTypeFunction,
