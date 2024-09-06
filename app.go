@@ -132,22 +132,23 @@ func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringT
 			return nil, fmt.Errorf("failed to NewRequestWithContext: %w", err)
 		}
 		req.Header.Add("Accept", "application/vnd.github.diff")
-		resp, err := a.httpClient.Do(req)
+		// Use `Client()` to add authentication header in request
+		resp, err := a.githubClient.Client().Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to Do HTTP request: %w", err)
 		}
 		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("failed to get a diff of pull-request '%s': status code from GitHub is %d: %s", pr.GetURL(), resp.StatusCode, resp.Status)
-		}
-		diff, err := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body) // Read the response body even if the status code is not 200.
 		if err != nil {
 			return nil, fmt.Errorf("failed to read response body: %w", err)
+		}
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("failed to get a diff of pull-request '%s': status code from GitHub is %d: %s", pr.GetURL(), resp.StatusCode, string(body))
 		}
 
 		request.PullRequests = append(request.PullRequests, &PullRequest{
 			URL:  prURL,
-			Diff: string(diff),
+			Diff: string(body),
 			// Title and Body are not used yet, maybe use them in the future.
 			Title: pr.GetTitle(),
 			Body:  pr.GetBody(),

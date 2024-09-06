@@ -67,8 +67,8 @@ func (c *cli) run(args []string) int {
 		c.outputError(err)
 		return ExitError
 	}
-	httpClient := http.DefaultClient
 	githubClient := createGitHubClient(nil)
+	httpClient := http.DefaultClient
 	app := corefactorer.New(c.logger, openAIClient, githubClient, httpClient)
 	c.logger.Debug("App created")
 
