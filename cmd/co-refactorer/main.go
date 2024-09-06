@@ -47,7 +47,7 @@ func (c *cli) run(args []string) int {
 	var (
 		flagPrompt      = flagSet.String("prompt", "", "Prompt for LLM")
 		flagPromptFile  = flagSet.String("prompt-file", "", "Specify prompt file for LLM")
-		flagModel       = flagSet.String("model", openai.GPT4oMini, "Specify LLM model of OpenAI")
+		flagModel       = flagSet.String("model", openai.GPT4oMini, "Specify LLM model of OpenAI. Available models: gpt-4o, gpt-4o-mini, etc...")
 		flagTemperature = flagSet.Float64("temperature", 0.7, "Specify temperature for LLM")
 	)
 	if err := flagSet.Parse(args[1:]); err != nil {
