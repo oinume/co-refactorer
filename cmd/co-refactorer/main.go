@@ -45,8 +45,9 @@ func (c *cli) run(args []string) int {
 	flagSet := flag.NewFlagSet("co-refactorer", flag.ContinueOnError)
 	flagSet.SetOutput(c.err)
 	var (
-		flagPrompt     = flagSet.String("flagPrompt", "", "Prompt for LLM")
-		flagPromptFile = flagSet.String("flagPrompt-file", "", "Specify flagPrompt file for LLM")
+		flagPrompt     = flagSet.String("prompt", "", "Prompt for LLM")
+		flagPromptFile = flagSet.String("prompt-file", "", "Specify prompt file for LLM")
+		flagModel      = flagSet.String("model", openai.GPT4oMini, "Specify LLM model of OpenAI")
 	)
 	if err := flagSet.Parse(args[1:]); err != nil {
 		flagSet.Usage()
@@ -71,7 +72,7 @@ func (c *cli) run(args []string) int {
 	c.logger.Debug("App created")
 
 	ctx := context.Background()
-	target, err := app.CreateRefactoringTarget(ctx, prompt)
+	target, err := app.CreateRefactoringTarget(ctx, prompt, *flagModel)
 	if err != nil {
 		c.outputError(err)
 		return ExitError

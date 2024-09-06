@@ -34,17 +34,18 @@ func New(logger *slog.Logger, openAIClient *openai.Client, githubClient *github.
 }
 
 // CreateRefactoringTarget creates `RefactoringTarget` from the given prompt with OpenAI FunctionCalling feature
-func (a *App) CreateRefactoringTarget(ctx context.Context, prompt string) (*RefactoringTarget, error) {
+func (a *App) CreateRefactoringTarget(ctx context.Context, prompt, model string) (*RefactoringTarget, error) {
 	resp, err := a.openAIClient.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model: openai.GPT4oMini,
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleUser,
 					Content: prompt,
 				},
 			},
+			Model:       model,
+			Temperature: 0.1,
 			Tools: []openai.Tool{
 				{
 					Type: openai.ToolTypeFunction,
@@ -132,7 +133,7 @@ func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringT
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("failed to get a diff of pull-request: status code from GitHub is %d: %s", resp.StatusCode, resp.Status)
+			return nil, fmt.Errorf("failed to get a diff of pull-request '%s': status code from GitHub is %d: %s", pr.GetURL(), resp.StatusCode, resp.Status)
 		}
 		diff, err := io.ReadAll(resp.Body)
 		if err != nil {
