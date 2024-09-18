@@ -9,7 +9,6 @@ NOTE: This is a prototype and not ready for production use. Use at your own risk
 - Go 1.22 or later
 - Make
 
-
 ## Build
 
 ```
