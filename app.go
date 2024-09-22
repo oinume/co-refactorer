@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"github.com/antchfx/htmlquery"
+	"github.com/google/generative-ai-go/genai"
 	"github.com/google/go-github/v65/github"
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
@@ -18,18 +19,26 @@ import (
 )
 
 type App struct {
-	logger       *slog.Logger
-	openAIClient *openai.Client
-	githubClient *github.Client
-	httpClient   *http.Client
+	logger            *slog.Logger
+	openAIClient      *openai.Client
+	googleGenAIClient *genai.Client
+	githubClient      *github.Client
+	httpClient        *http.Client
 }
 
-func New(logger *slog.Logger, openAIClient *openai.Client, githubClient *github.Client, httpClient *http.Client) *App {
+func New(
+	logger *slog.Logger,
+	openAIClient *openai.Client,
+	googleGenAIClient *genai.Client,
+	githubClient *github.Client,
+	httpClient *http.Client,
+) *App {
 	return &App{
-		logger:       logger,
-		openAIClient: openAIClient,
-		githubClient: githubClient,
-		httpClient:   httpClient,
+		logger:            logger,
+		openAIClient:      openAIClient,
+		googleGenAIClient: googleGenAIClient,
+		githubClient:      githubClient,
+		httpClient:        httpClient,
 	}
 }
 
