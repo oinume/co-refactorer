@@ -19,8 +19,8 @@ const (
 	ExitOK    = 0
 	ExitError = 1
 
-	GoogleGenAIAPIKeyName = "GOOGLE_GENAI_API_KEY"
-	OpenAIAPIKeyName      = "OPENAI_API_KEY"
+	GeminiAPIKeyName = "GEMINI_API_KEY"
+	OpenAIAPIKeyName = "OPENAI_API_KEY"
 )
 
 type cli struct {
@@ -74,7 +74,7 @@ func (c *cli) run(args []string) int {
 		}
 	}
 	var googleGenAIClient *genai.Client
-	if os.Getenv(GoogleGenAIAPIKeyName) != "" {
+	if os.Getenv(GeminiAPIKeyName) != "" {
 		googleGenAIClient, err = createGoogleGenAIClient(context.Background())
 		if err != nil {
 			c.outputError(err)
@@ -131,7 +131,7 @@ func createLogger(out io.Writer) *slog.Logger {
 }
 
 func createOpenAIClient() (*openai.Client, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
+	apiKey := os.Getenv(OpenAIAPIKeyName)
 	if apiKey == "" {
 		return nil, fmt.Errorf("env var OPENAI_API_KEY is not defined")
 	}
@@ -139,7 +139,7 @@ func createOpenAIClient() (*openai.Client, error) {
 }
 
 func createGoogleGenAIClient(ctx context.Context) (*genai.Client, error) {
-	apiKey := os.Getenv("GOOGLE_GENAI_API_KEY")
+	apiKey := os.Getenv(GeminiAPIKeyName)
 	if apiKey == "" {
 		return nil, fmt.Errorf("env var GOOGLE_GENAI_API_KEY is not defined")
 	}
