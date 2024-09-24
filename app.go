@@ -3,7 +3,6 @@ package corefactorer
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -14,12 +13,12 @@ import (
 	"github.com/google/generative-ai-go/genai"
 	"github.com/google/go-github/v65/github"
 	"github.com/sashabaranov/go-openai"
-	"github.com/sashabaranov/go-openai/jsonschema"
 	"github.com/yuin/goldmark"
 )
 
 type App struct {
 	logger            *slog.Logger
+	agent             Agent
 	openAIClient      *openai.Client
 	googleGenAIClient *genai.Client
 	githubClient      *github.Client
@@ -28,6 +27,7 @@ type App struct {
 
 func New(
 	logger *slog.Logger,
+	agent Agent,
 	openAIClient *openai.Client,
 	googleGenAIClient *genai.Client,
 	githubClient *github.Client,
@@ -35,6 +35,7 @@ func New(
 ) *App {
 	return &App{
 		logger:            logger,
+		agent:             agent,
 		openAIClient:      openAIClient,
 		googleGenAIClient: googleGenAIClient,
 		githubClient:      githubClient,
@@ -49,73 +50,74 @@ func (a *App) CreateRefactoringTarget(
 	model string,
 	temperature float32,
 ) (*RefactoringTarget, error) {
-	resp, err := a.openAIClient.CreateChatCompletion(
-		ctx,
-		openai.ChatCompletionRequest{
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: prompt,
-				},
-			},
-			Model:       model,
-			Temperature: temperature,
-			Tools: []openai.Tool{
-				{
-					Type: openai.ToolTypeFunction,
-					Function: &openai.FunctionDefinition{
-						Name: "extractRefactoringTarget",
-						Parameters: &jsonschema.Definition{
-							Type: jsonschema.Object,
-							Properties: map[string]jsonschema.Definition{
-								"pullRequestUrls": {
-									Type:        jsonschema.Array,
-									Description: "Pull-request URLs in GitHub to refer to for refactoring",
-									Items: &jsonschema.Definition{
-										Type: jsonschema.String,
-									},
-								},
-								"files": {
-									Type:        jsonschema.Array,
-									Description: "List of target files to be refactored",
-									Items: &jsonschema.Definition{
-										Type: jsonschema.String,
-									},
-								},
-							},
-							Required: []string{"pullRequestUrls", "files"},
-						},
-					},
-				},
-			},
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(resp.Choices) == 0 {
-		return nil, fmt.Errorf("no choices in response")
-	}
-	toolCalls := resp.Choices[0].Message.ToolCalls
-	if len(toolCalls) == 0 {
-		return nil, fmt.Errorf("no tool_calls in response")
-	}
-
-	target := &RefactoringTarget{
-		UserPrompt: prompt,
-		ToolCallID: toolCalls[0].ID,
-	}
-	for _, toolCall := range toolCalls {
-		var tmp RefactoringTarget
-		if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &tmp); err != nil {
-			return nil, fmt.Errorf("failed to json.Unmarshal: %w", err)
-		}
-		target.PullRequestURLs = append(target.PullRequestURLs, tmp.PullRequestURLs...)
-		target.Files = append(target.Files, tmp.Files...)
-	}
-
-	return target.Unique(), nil
+	return a.agent.CreateRefactoringTarget(ctx, prompt, model, temperature)
+	//resp, err := a.openAIClient.CreateChatCompletion(
+	//	ctx,
+	//	openai.ChatCompletionRequest{
+	//		Messages: []openai.ChatCompletionMessage{
+	//			{
+	//				Role:    openai.ChatMessageRoleUser,
+	//				Content: prompt,
+	//			},
+	//		},
+	//		Model:       model,
+	//		Temperature: temperature,
+	//		Tools: []openai.Tool{
+	//			{
+	//				Type: openai.ToolTypeFunction,
+	//				Function: &openai.FunctionDefinition{
+	//					Name: "extractRefactoringTarget",
+	//					Parameters: &jsonschema.Definition{
+	//						Type: jsonschema.Object,
+	//						Properties: map[string]jsonschema.Definition{
+	//							"pullRequestUrls": {
+	//								Type:        jsonschema.Array,
+	//								Description: "Pull-request URLs in GitHub to refer to for refactoring",
+	//								Items: &jsonschema.Definition{
+	//									Type: jsonschema.String,
+	//								},
+	//							},
+	//							"files": {
+	//								Type:        jsonschema.Array,
+	//								Description: "List of target files to be refactored",
+	//								Items: &jsonschema.Definition{
+	//									Type: jsonschema.String,
+	//								},
+	//							},
+	//						},
+	//						Required: []string{"pullRequestUrls", "files"},
+	//					},
+	//				},
+	//			},
+	//		},
+	//	},
+	//)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//if len(resp.Choices) == 0 {
+	//	return nil, fmt.Errorf("no choices in response")
+	//}
+	//toolCalls := resp.Choices[0].Message.ToolCalls
+	//if len(toolCalls) == 0 {
+	//	return nil, fmt.Errorf("no tool_calls in response")
+	//}
+	//
+	//target := &RefactoringTarget{
+	//	UserPrompt: prompt,
+	//	ToolCallID: toolCalls[0].ID,
+	//}
+	//for _, toolCall := range toolCalls {
+	//	var tmp RefactoringTarget
+	//	if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &tmp); err != nil {
+	//		return nil, fmt.Errorf("failed to json.Unmarshal: %w", err)
+	//	}
+	//	target.PullRequestURLs = append(target.PullRequestURLs, tmp.PullRequestURLs...)
+	//	target.Files = append(target.Files, tmp.Files...)
+	//}
+	//
+	//return target.Unique(), nil
 }
 
 // CreateRefactoringRequest creates `RefactoringRequest`.
@@ -185,46 +187,47 @@ func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringT
 // CreateRefactoringResult sends a request of refactoring to OpenAI API.
 // The chat message in the request includes an original user prompt and fetched pull-request info and file content in given `RefactoringRequest`.
 func (a *App) CreateRefactoringResult(ctx context.Context, req *RefactoringRequest) (*RefactoringResult, error) {
-	// TODO: https://platform.openai.com/docs/guides/function-calling
-	// Preserve first result message
-	// 1. Original assistanceMessage
-	// 2. Preserved first result message
-	// 3. PR info and file content
-	assistanceMessage, err := req.CreateAssistanceMessage()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create assistance message: %w", err)
-	}
-	// fmt.Printf("--- assistanceMessage ---\n%s", assistanceMessage)
-
-	messages := make([]openai.ChatCompletionMessage, 0, 5)
-	messages = append(messages, []openai.ChatCompletionMessage{
-		{
-			Role:    openai.ChatMessageRoleUser,
-			Content: req.UserPrompt,
-		},
-		{
-			Role:    openai.ChatMessageRoleAssistant,
-			Content: assistanceMessage,
-		},
-	}...)
-
-	resp, err := a.openAIClient.CreateChatCompletion(
-		ctx,
-		openai.ChatCompletionRequest{
-			Model:    openai.GPT4oMini,
-			Messages: messages,
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create chat completion: %w", err)
-	}
-	if len(resp.Choices) == 0 {
-		return nil, fmt.Errorf("no choices in response")
-	}
-
-	return &RefactoringResult{
-		RawContent: resp.Choices[0].Message.Content,
-	}, nil
+	return a.agent.CreateRefactoringResult(ctx, req)
+	//// TODO: https://platform.openai.com/docs/guides/function-calling
+	//// Preserve first result message
+	//// 1. Original assistanceMessage
+	//// 2. Preserved first result message
+	//// 3. PR info and file content
+	//assistanceMessage, err := req.CreateAssistanceMessage()
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed to create assistance message: %w", err)
+	//}
+	//// fmt.Printf("--- assistanceMessage ---\n%s", assistanceMessage)
+	//
+	//messages := make([]openai.ChatCompletionMessage, 0, 5)
+	//messages = append(messages, []openai.ChatCompletionMessage{
+	//	{
+	//		Role:    openai.ChatMessageRoleUser,
+	//		Content: req.UserPrompt,
+	//	},
+	//	{
+	//		Role:    openai.ChatMessageRoleAssistant,
+	//		Content: assistanceMessage,
+	//	},
+	//}...)
+	//
+	//resp, err := a.openAIClient.CreateChatCompletion(
+	//	ctx,
+	//	openai.ChatCompletionRequest{
+	//		Model:    openai.GPT4oMini,
+	//		Messages: messages,
+	//	},
+	//)
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed to create chat completion: %w", err)
+	//}
+	//if len(resp.Choices) == 0 {
+	//	return nil, fmt.Errorf("no choices in response")
+	//}
+	//
+	//return &RefactoringResult{
+	//	RawContent: resp.Choices[0].Message.Content,
+	//}, nil
 }
 
 func (a *App) ApplyRefactoringResult(ctx context.Context, result *RefactoringResult) error {

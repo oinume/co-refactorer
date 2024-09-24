@@ -81,9 +81,10 @@ func (c *cli) run(args []string) int {
 			return ExitError
 		}
 	}
+	agent := corefactorer.NewOpenAIAgent(openAIClient)
 	githubClient := createGitHubClient(nil)
 	httpClient := http.DefaultClient
-	app := corefactorer.New(c.logger, openAIClient, googleGenAIClient, githubClient, httpClient)
+	app := corefactorer.New(c.logger, agent, openAIClient, googleGenAIClient, githubClient, httpClient)
 	c.logger.Debug("App created")
 
 	ctx := context.Background()
