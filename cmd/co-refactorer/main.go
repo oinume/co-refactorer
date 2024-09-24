@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/google/generative-ai-go/genai"
 	"github.com/google/go-github/v65/github"
 	"github.com/oinume/corefactorer"
 	"github.com/sashabaranov/go-openai"
@@ -18,9 +17,6 @@ import (
 const (
 	ExitOK    = 0
 	ExitError = 1
-
-	GeminiAPIKeyName = "GEMINI_API_KEY"
-	OpenAIAPIKeyName = "OPENAI_API_KEY"
 )
 
 type cli struct {
@@ -65,26 +61,15 @@ func (c *cli) run(args []string) int {
 	}
 	c.logger.Debug("prompt", slog.String("prompt", prompt))
 
-	var openAIClient *openai.Client
-	if os.Getenv(OpenAIAPIKeyName) != "" {
-		openAIClient, err = createOpenAIClient()
-		if err != nil {
-			c.outputError(err)
-			return ExitError
-		}
+	agent, err := corefactorer.NewAgent(*flagModel)
+	if err != nil {
+		c.outputError(err)
+		return ExitError
 	}
-	var googleGenAIClient *genai.Client
-	if os.Getenv(GeminiAPIKeyName) != "" {
-		googleGenAIClient, err = createGoogleGenAIClient(context.Background())
-		if err != nil {
-			c.outputError(err)
-			return ExitError
-		}
-	}
-	agent := corefactorer.NewOpenAIAgent(openAIClient)
+	c.logger.Debug("Agent created")
 	githubClient := createGitHubClient(nil)
 	httpClient := http.DefaultClient
-	app := corefactorer.New(c.logger, agent, openAIClient, googleGenAIClient, githubClient, httpClient)
+	app := corefactorer.New(c.logger, agent, githubClient, httpClient)
 	c.logger.Debug("App created")
 
 	ctx := context.Background()
@@ -129,26 +114,6 @@ func createLogger(out io.Writer) *slog.Logger {
 		logLevel = slog.LevelDebug
 	}
 	return slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{Level: logLevel}))
-}
-
-func createOpenAIClient() (*openai.Client, error) {
-	apiKey := os.Getenv(OpenAIAPIKeyName)
-	if apiKey == "" {
-		return nil, fmt.Errorf("env var OPENAI_API_KEY is not defined")
-	}
-	return openai.NewClient(apiKey), nil
-}
-
-func createGoogleGenAIClient(ctx context.Context) (*genai.Client, error) {
-	apiKey := os.Getenv(GeminiAPIKeyName)
-	if apiKey == "" {
-		return nil, fmt.Errorf("env var GOOGLE_GENAI_API_KEY is not defined")
-	}
-	client, err := genai.NewClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("genai.NewClient failed: %w", err)
-	}
-	return client, nil
 }
 
 func createGitHubClient(httpClient *http.Client) *github.Client {

@@ -10,36 +10,29 @@ import (
 	"os"
 
 	"github.com/antchfx/htmlquery"
-	"github.com/google/generative-ai-go/genai"
 	"github.com/google/go-github/v65/github"
 	"github.com/sashabaranov/go-openai"
 	"github.com/yuin/goldmark"
 )
 
 type App struct {
-	logger            *slog.Logger
-	agent             Agent
-	openAIClient      *openai.Client
-	googleGenAIClient *genai.Client
-	githubClient      *github.Client
-	httpClient        *http.Client
+	logger       *slog.Logger
+	agent        Agent
+	githubClient *github.Client
+	httpClient   *http.Client
 }
 
 func New(
 	logger *slog.Logger,
 	agent Agent,
-	openAIClient *openai.Client,
-	googleGenAIClient *genai.Client,
 	githubClient *github.Client,
 	httpClient *http.Client,
 ) *App {
 	return &App{
-		logger:            logger,
-		agent:             agent,
-		openAIClient:      openAIClient,
-		googleGenAIClient: googleGenAIClient,
-		githubClient:      githubClient,
-		httpClient:        httpClient,
+		logger:       logger,
+		agent:        agent,
+		githubClient: githubClient,
+		httpClient:   httpClient,
 	}
 }
 
@@ -51,73 +44,6 @@ func (a *App) CreateRefactoringTarget(
 	temperature float32,
 ) (*RefactoringTarget, error) {
 	return a.agent.CreateRefactoringTarget(ctx, prompt, model, temperature)
-	//resp, err := a.openAIClient.CreateChatCompletion(
-	//	ctx,
-	//	openai.ChatCompletionRequest{
-	//		Messages: []openai.ChatCompletionMessage{
-	//			{
-	//				Role:    openai.ChatMessageRoleUser,
-	//				Content: prompt,
-	//			},
-	//		},
-	//		Model:       model,
-	//		Temperature: temperature,
-	//		Tools: []openai.Tool{
-	//			{
-	//				Type: openai.ToolTypeFunction,
-	//				Function: &openai.FunctionDefinition{
-	//					Name: "extractRefactoringTarget",
-	//					Parameters: &jsonschema.Definition{
-	//						Type: jsonschema.Object,
-	//						Properties: map[string]jsonschema.Definition{
-	//							"pullRequestUrls": {
-	//								Type:        jsonschema.Array,
-	//								Description: "Pull-request URLs in GitHub to refer to for refactoring",
-	//								Items: &jsonschema.Definition{
-	//									Type: jsonschema.String,
-	//								},
-	//							},
-	//							"files": {
-	//								Type:        jsonschema.Array,
-	//								Description: "List of target files to be refactored",
-	//								Items: &jsonschema.Definition{
-	//									Type: jsonschema.String,
-	//								},
-	//							},
-	//						},
-	//						Required: []string{"pullRequestUrls", "files"},
-	//					},
-	//				},
-	//			},
-	//		},
-	//	},
-	//)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//if len(resp.Choices) == 0 {
-	//	return nil, fmt.Errorf("no choices in response")
-	//}
-	//toolCalls := resp.Choices[0].Message.ToolCalls
-	//if len(toolCalls) == 0 {
-	//	return nil, fmt.Errorf("no tool_calls in response")
-	//}
-	//
-	//target := &RefactoringTarget{
-	//	UserPrompt: prompt,
-	//	ToolCallID: toolCalls[0].ID,
-	//}
-	//for _, toolCall := range toolCalls {
-	//	var tmp RefactoringTarget
-	//	if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &tmp); err != nil {
-	//		return nil, fmt.Errorf("failed to json.Unmarshal: %w", err)
-	//	}
-	//	target.PullRequestURLs = append(target.PullRequestURLs, tmp.PullRequestURLs...)
-	//	target.Files = append(target.Files, tmp.Files...)
-	//}
-	//
-	//return target.Unique(), nil
 }
 
 // CreateRefactoringRequest creates `RefactoringRequest`.

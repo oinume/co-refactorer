@@ -19,6 +19,17 @@ type RefactoringTarget struct {
 	Files           []string
 }
 
+func (rt *RefactoringTarget) String() string {
+	var b strings.Builder
+	_, _ = fmt.Fprintf(&b, `{`)
+	_, _ = fmt.Fprintf(&b, `UserPrompt:'%s'`, rt.UserPrompt)
+	_, _ = fmt.Fprintf(&b, `, ToolCallID:"'%s'`, rt.ToolCallID)
+	_, _ = fmt.Fprintf(&b, `, PullRequestURLs:%v`, rt.PullRequestURLs)
+	_, _ = fmt.Fprintf(&b, `, Files:%v`, rt.Files)
+	_, _ = fmt.Fprintf(&b, `}`)
+	return b.String()
+}
+
 func (rt *RefactoringTarget) Unique() *RefactoringTarget {
 	retVal := *rt
 	slices.Sort(retVal.PullRequestURLs)

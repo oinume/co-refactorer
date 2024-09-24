@@ -72,7 +72,7 @@ func (a *OpenAIAgent) CreateRefactoringTarget(ctx context.Context, prompt string
 	}
 	toolCalls := resp.Choices[0].Message.ToolCalls
 	if len(toolCalls) == 0 {
-		return nil, fmt.Errorf("no tool_calls in response")
+		return nil, fmt.Errorf("no tool calls in response")
 	}
 
 	target := &RefactoringTarget{
