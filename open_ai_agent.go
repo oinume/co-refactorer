@@ -20,6 +20,30 @@ func NewOpenAIAgent(client *openai.Client) Agent {
 }
 
 func (a *OpenAIAgent) CreateRefactoringTarget(ctx context.Context, prompt string, model string, temperature float32) (*RefactoringTarget, error) {
+	functionDefinition := &openai.FunctionDefinition{
+		Name:        functionName,
+		Description: functionDescription,
+		Parameters: &jsonschema.Definition{
+			Type: jsonschema.Object,
+			Properties: map[string]jsonschema.Definition{
+				functionParameter1Name: {
+					Type:        jsonschema.Array,
+					Description: functionParameter1Description,
+					Items: &jsonschema.Definition{
+						Type: jsonschema.String,
+					},
+				},
+				functionParameter2Name: {
+					Type:        jsonschema.Array,
+					Description: functionParameter2Description,
+					Items: &jsonschema.Definition{
+						Type: jsonschema.String,
+					},
+				},
+			},
+			Required: []string{functionParameter1Name, functionParameter2Name},
+		},
+	}
 	resp, err := a.client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
@@ -33,30 +57,8 @@ func (a *OpenAIAgent) CreateRefactoringTarget(ctx context.Context, prompt string
 			Temperature: temperature,
 			Tools: []openai.Tool{
 				{
-					Type: openai.ToolTypeFunction,
-					Function: &openai.FunctionDefinition{
-						Name: "extractRefactoringTarget",
-						Parameters: &jsonschema.Definition{
-							Type: jsonschema.Object,
-							Properties: map[string]jsonschema.Definition{
-								"pullRequestUrls": {
-									Type:        jsonschema.Array,
-									Description: "Pull-request URLs in GitHub to refer to for refactoring",
-									Items: &jsonschema.Definition{
-										Type: jsonschema.String,
-									},
-								},
-								"files": {
-									Type:        jsonschema.Array,
-									Description: "List of target files to be refactored",
-									Items: &jsonschema.Definition{
-										Type: jsonschema.String,
-									},
-								},
-							},
-							Required: []string{"pullRequestUrls", "files"},
-						},
-					},
+					Type:     openai.ToolTypeFunction,
+					Function: functionDefinition,
 				},
 			},
 		},
