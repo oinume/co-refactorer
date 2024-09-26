@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/google/go-github/v64/github"
+	"github.com/google/go-github/v65/github"
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/oinume/corefactorer"
