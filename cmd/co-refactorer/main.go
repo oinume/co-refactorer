@@ -10,9 +10,8 @@ import (
 	"os"
 
 	"github.com/google/go-github/v65/github"
-	"github.com/sashabaranov/go-openai"
-
 	"github.com/oinume/corefactorer"
+	"github.com/sashabaranov/go-openai"
 )
 
 const (
@@ -62,14 +61,15 @@ func (c *cli) run(args []string) int {
 	}
 	c.logger.Debug("prompt", slog.String("prompt", prompt))
 
-	openAIClient, err := createOpenAIClient()
+	agent, err := corefactorer.NewAgent(*flagModel, c.logger)
 	if err != nil {
 		c.outputError(err)
 		return ExitError
 	}
+	c.logger.Debug("Agent created")
 	githubClient := createGitHubClient(nil)
 	httpClient := http.DefaultClient
-	app := corefactorer.New(c.logger, openAIClient, githubClient, httpClient)
+	app := corefactorer.New(c.logger, agent, githubClient, httpClient)
 	c.logger.Debug("App created")
 
 	ctx := context.Background()
@@ -114,14 +114,6 @@ func createLogger(out io.Writer) *slog.Logger {
 		logLevel = slog.LevelDebug
 	}
 	return slog.New(slog.NewTextHandler(out, &slog.HandlerOptions{Level: logLevel}))
-}
-
-func createOpenAIClient() (*openai.Client, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		return nil, fmt.Errorf("env var OPENAI_API_KEY is not defined")
-	}
-	return openai.NewClient(apiKey), nil
 }
 
 func createGitHubClient(httpClient *http.Client) *github.Client {

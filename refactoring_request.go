@@ -62,6 +62,25 @@ func (rr *RefactoringRequest) CreateAssistanceMessage() (string, error) {
 	return sb.String(), nil
 }
 
+func (rr *RefactoringRequest) String() string {
+	prURLs := make([]string, len(rr.PullRequests))
+	for i, pr := range rr.PullRequests {
+		prURLs[i] = pr.URL
+	}
+	filePaths := make([]string, len(rr.TargetFiles))
+	for i, f := range rr.TargetFiles {
+		filePaths[i] = f.Path
+	}
+	var b strings.Builder
+	_, _ = fmt.Fprintf(&b, `{`)
+	_, _ = fmt.Fprintf(&b, `UserPrompt:'%s'`, rr.UserPrompt)
+	_, _ = fmt.Fprintf(&b, `, ToolCallID:"'%s'`, rr.ToolCallID)
+	_, _ = fmt.Fprintf(&b, `, PullRequests:%v`, prURLs)
+	_, _ = fmt.Fprintf(&b, `, Files:%v`, filePaths)
+	_, _ = fmt.Fprintf(&b, `}`)
+	return b.String()
+}
+
 type RefactoringResult struct {
 	RawContent string
 }

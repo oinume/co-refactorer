@@ -3,26 +3,16 @@ package corefactorer
 import (
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"testing"
-
-	"github.com/google/go-github/v64/github"
-	"github.com/sashabaranov/go-openai"
 )
 
 func Test_App_parseMarkdownContent(t *testing.T) {
-	type fields struct {
-		openAIClient *openai.Client //nolint:unused
-		githubClient *github.Client //nolint:unused
-		httpClient   *http.Client   //nolint:unused
-	}
 	type args struct {
 		content string
 	}
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		wantErr bool
 	}{
