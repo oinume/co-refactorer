@@ -12,8 +12,11 @@ import (
 )
 
 type Agent interface {
+	// CreateRefactoringTarget creates `RefactoringTarget` from the given prompt with GenAI FunctionCalling feature
 	CreateRefactoringTarget(ctx context.Context, prompt string, model string, temperature float32) (*RefactoringTarget, error)
 
+	// CreateRefactoringResult sends a request of refactoring to GenAI API.
+	// The chat message in the request includes an original user prompt and fetched pull-request info and file content in given `RefactoringRequest`.
 	CreateRefactoringResult(ctx context.Context, req *RefactoringRequest) (*RefactoringResult, error)
 }
 

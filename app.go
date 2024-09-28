@@ -114,46 +114,6 @@ func (a *App) CreateRefactoringRequest(ctx context.Context, target *RefactoringT
 // The chat message in the request includes an original user prompt and fetched pull-request info and file content in given `RefactoringRequest`.
 func (a *App) CreateRefactoringResult(ctx context.Context, req *RefactoringRequest) (*RefactoringResult, error) {
 	return a.agent.CreateRefactoringResult(ctx, req)
-	//// TODO: https://platform.openai.com/docs/guides/function-calling
-	//// Preserve first result message
-	//// 1. Original assistanceMessage
-	//// 2. Preserved first result message
-	//// 3. PR info and file content
-	//assistanceMessage, err := req.CreateAssistanceMessage()
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to create assistance message: %w", err)
-	//}
-	//// fmt.Printf("--- assistanceMessage ---\n%s", assistanceMessage)
-	//
-	//messages := make([]openai.ChatCompletionMessage, 0, 5)
-	//messages = append(messages, []openai.ChatCompletionMessage{
-	//	{
-	//		Role:    openai.ChatMessageRoleUser,
-	//		Content: req.UserPrompt,
-	//	},
-	//	{
-	//		Role:    openai.ChatMessageRoleAssistant,
-	//		Content: assistanceMessage,
-	//	},
-	//}...)
-	//
-	//resp, err := a.openAIClient.CreateChatCompletion(
-	//	ctx,
-	//	openai.ChatCompletionRequest{
-	//		Model:    openai.GPT4oMini,
-	//		Messages: messages,
-	//	},
-	//)
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to create chat completion: %w", err)
-	//}
-	//if len(resp.Choices) == 0 {
-	//	return nil, fmt.Errorf("no choices in response")
-	//}
-	//
-	//return &RefactoringResult{
-	//	RawContent: resp.Choices[0].Message.Content,
-	//}, nil
 }
 
 func (a *App) ApplyRefactoringResult(ctx context.Context, result *RefactoringResult) error {
