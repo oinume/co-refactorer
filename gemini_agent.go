@@ -3,6 +3,7 @@ package corefactorer
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/google/generative-ai-go/genai"
 )
@@ -11,17 +12,20 @@ type GeminiAgent struct {
 	client      *genai.Client
 	chatSession *genai.ChatSession
 	model       *genai.GenerativeModel
+	logger      *slog.Logger
 }
 
-func NewGeminiAgent(client *genai.Client) Agent {
+func NewGeminiAgent(client *genai.Client, logger *slog.Logger) Agent {
 	return &GeminiAgent{
 		client: client,
+		logger: logger,
 	}
 }
 
 func (a *GeminiAgent) CreateRefactoringTarget(ctx context.Context, prompt string, modelName string, temperature float32) (*RefactoringTarget, error) {
 	model := a.client.GenerativeModel(modelName)
 	a.model = model
+	model.Temperature = &temperature
 	functionDefinition := &genai.FunctionDeclaration{
 		Name:        functionName,
 		Description: functionDescription,
@@ -73,8 +77,7 @@ func (a *GeminiAgent) CreateRefactoringTarget(ctx context.Context, prompt string
 	if len(functionCalls) == 0 {
 		return nil, fmt.Errorf("no function calls in response")
 	}
-	fmt.Printf("functionCall.Name = %s\n", functionCalls[0].Name)
-	fmt.Printf("functionCall.Args = %+v\n", functionCalls[0].Args)
+	a.logger.Debug("functionCalls[0]", slog.String("name", functionCalls[0].Name), slog.Any("args", functionCalls[0].Args))
 	target := &RefactoringTarget{
 		UserPrompt: prompt,
 		ToolCallID: "",
@@ -84,27 +87,26 @@ func (a *GeminiAgent) CreateRefactoringTarget(ctx context.Context, prompt string
 		for name, value := range functionCall.Args {
 			switch name {
 			case functionParameter1Name:
-				fmt.Printf("value type: %T %+v\n", value, value)
 				values, ok := value.([]interface{})
 				if !ok {
-					return nil, fmt.Errorf("boom1")
+					return nil, fmt.Errorf("%s: []interface{} type assertion failed", functionParameter1Name)
 				}
 				for _, v := range values {
 					s, ok := v.(string)
 					if !ok {
-						return nil, fmt.Errorf("boom2")
+						return nil, fmt.Errorf("%s: string type assertion failed", functionParameter1Name)
 					}
 					tmp.PullRequestURLs = append(tmp.PullRequestURLs, s)
 				}
 			case functionParameter2Name:
 				values, ok := value.([]interface{})
 				if !ok {
-					return nil, fmt.Errorf("boom1")
+					return nil, fmt.Errorf("%s: []interface{} type assertion failed", functionParameter2Name)
 				}
 				for _, v := range values {
 					s, ok := v.(string)
 					if !ok {
-						return nil, fmt.Errorf("boom2")
+						return nil, fmt.Errorf("%s: string type assertion failed", functionParameter2Name)
 					}
 					tmp.Files = append(tmp.Files, s)
 				}
@@ -124,34 +126,33 @@ func (a *GeminiAgent) CreateRefactoringResult(ctx context.Context, req *Refactor
 	if err != nil {
 		return nil, fmt.Errorf("failed to create assistance message: %w", err)
 	}
-	//resp, err := a.model.GenerateContent(
-	//	ctx,
-	//	genai.Text(req.UserPrompt),
-	//	genai.Text(assistanceMessage),
-	//)
-
-	functionResponse := map[string]any{
-		"pullRequestDiff": req.PullRequests[0].Diff,
-	}
-	for _, f := range req.TargetFiles {
-		functionResponse[f.Path] = f.Content
-	}
-	resp, err := a.chatSession.SendMessage(
+	resp, err := a.model.GenerateContent(
 		ctx,
 		genai.Text(req.UserPrompt),
 		genai.Text(assistanceMessage),
-		&genai.FunctionResponse{
-			Name:     functionName,
-			Response: functionResponse,
-		},
 	)
+
+	//functionResponse := map[string]any{
+	//	"pullRequestDiff": req.PullRequests[0].Diff,
+	//}
+	//for _, f := range req.TargetFiles {
+	//	functionResponse[f.Path] = f.Content
+	//}
+	//resp, err := a.chatSession.SendMessage(
+	//	ctx,
+	//	genai.Text(req.UserPrompt),
+	//	genai.Text(assistanceMessage),
+	//	&genai.FunctionResponse{
+	//		Name:     functionName,
+	//		Response: functionResponse,
+	//	},
+	//)
 	if err != nil {
 		return nil, err
 	}
 	for _, c := range resp.Candidates {
-		fmt.Printf("----- candicates[%d] -----\n", c.Index)
 		for i, p := range c.Content.Parts {
-			fmt.Printf("[%d] %+v\n", i, p)
+			a.logger.Debug("candidates", slog.Int("index", int(c.Index)), slog.Int("partIndex", i), slog.Any("part", p))
 		}
 	}
 	//fmt.Printf("----- response -----\n%v", resp.Candidates[0].Content.Parts[0])
@@ -159,45 +160,4 @@ func (a *GeminiAgent) CreateRefactoringResult(ctx context.Context, req *Refactor
 	return &RefactoringResult{
 		RawContent: fmt.Sprint(resp.Candidates[0].Content.Parts[0]),
 	}, nil
-
-	//// TODO: https://platform.openai.com/docs/guides/function-calling
-	//// Preserve first result message
-	//// 1. Original assistanceMessage
-	//// 2. Preserved first result message
-	//// 3. PR info and file content
-	//assistanceMessage, err := req.CreateAssistanceMessage()
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to create assistance message: %w", err)
-	//}
-	//// fmt.Printf("--- assistanceMessage ---\n%s", assistanceMessage)
-	//
-	//messages := make([]openai.ChatCompletionMessage, 0, 5)
-	//messages = append(messages, []openai.ChatCompletionMessage{
-	//	{
-	//		Role:    openai.ChatMessageRoleUser,
-	//		Content: req.UserPrompt,
-	//	},
-	//	{
-	//		Role:    openai.ChatMessageRoleAssistant,
-	//		Content: assistanceMessage,
-	//	},
-	//}...)
-	//
-	//resp, err := a.client.CreateChatCompletion(
-	//	ctx,
-	//	openai.ChatCompletionRequest{
-	//		Model:    openai.GPT4oMini,
-	//		Messages: messages,
-	//	},
-	//)
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to create chat completion: %w", err)
-	//}
-	//if len(resp.Choices) == 0 {
-	//	return nil, fmt.Errorf("no choices in response")
-	//}
-	//
-	//return &RefactoringResult{
-	//	RawContent: resp.Choices[0].Message.Content,
-	//}, nil
 }
