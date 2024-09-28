@@ -58,3 +58,21 @@ OPENAI_API_KEY='<YourAPIKey>' ./bin/co-refactorer < example/prompt1.txt
 ```
 
 Then, co-refactorer will overwrite the target files with refactored code. After that, you may make a pull-request with the refactored file.
+
+## More examples
+
+### Specifying GenAI model
+
+You can specify GenAI model with `-model` option like below. The default model is `gpt-4o-mini`.
+
+```
+OPENAI_API_KEY='<YourAPIKey>' ./bin/co-refactorer -model=gpt-4o < example/prompt1.txt
+```
+
+### Specifying temperature
+
+You can specify temperature with `-temperature` option like below.
+
+```
+OPENAI_API_KEY='<YourAPIKey>' ./bin/co-refactorer -temperature=0.1 < example/prompt1.txt
+```
