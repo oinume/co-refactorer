@@ -10,13 +10,11 @@ func TestRefactoringTarget_Unique(t *testing.T) {
 		PullRequestURLs []string
 		Files           []string
 	}
-	tests := []struct {
-		name   string
+	tests := map[string]struct {
 		fields fields
 		want   *RefactoringTarget
 	}{
-		{
-			name: "ok",
+		"ok": {
 			fields: fields{
 				PullRequestURLs: []string{
 					"https://github.com/oinume/co-refactorer/pull/1",
@@ -39,8 +37,8 @@ func TestRefactoringTarget_Unique(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			rt := &RefactoringTarget{
 				PullRequestURLs: tt.fields.PullRequestURLs,
 				Files:           tt.fields.Files,
