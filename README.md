@@ -43,14 +43,17 @@ You can run co-refactorer in two ways:
 - Use `go run` command: `go run ./cmd/co-refactorer/main.go`
 
 
-First, Check out prompt for LLM.
+First, prepare prompt to refactor your code for GenAI. co-refactorer requires a pull-request URL to refer and paths of target files in your machine to be refactored. 
+
+Here is an example of prompt file.
 ```
 cat example/prompt1.txt
-
-You are an expert Go programmer. Please refactor the following files to use a `map[string]struct{...}` format instead of `[]struct{ name string ...}` using Table Driven Test as a reference from this PR (https://github.com/oinume/co-refactorer/pull/9)
-
-refactoring_request_test.go
 ```
+
+> You are an expert Go programmer. Please refactor the following files to use a `map[string]struct{...}` format instead of `[]struct{ name string ...}` using Table Driven Test as a reference from this PR (`https://github.com/oinume/co-refactorer/pull/9`)
+> 
+> refactoring_request_test.go
+
 
 Then, run co-refactorer with the prompt.
 ```
