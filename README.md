@@ -1,13 +1,33 @@
 # co-refactorer
-Refactoring with LLM.
+Refactoring your code with GenAI.
 
 NOTE: This is a prototype and not ready for production use. Use at your own risk.
 
 ## Prerequisites
 
 - OpenAI API key
-- Go 1.22 or later
+- Go 1.23 or later
 - Make
+- (optional) GitHub Personal Access Token
+  - If you want to use co-refactorer for private repository, you need to set `GITHUB_TOKEN` environment variable.
+
+### Obtain OpenAI API key
+
+- Go to the following URL
+  - https://platform.openai.com/organization/api-keys
+- Create new secret key
+- Then, copy the key and set it to `OPENAI_API_KEY` environment variable when using `co-refactorer` command.
+ 
+### Obtain GitHub Personal Access Token
+
+- Go to the following URL
+  - https://github.com/settings/tokens?type=beta
+  - Settings -> Developer settings -> Personal access tokens -> Fine-grained tokens
+- Generate new token with following permissions
+  - Pull requests: Read-only
+  - Metadata: Read-only
+- Then, copy the token and set it to `GITHUB_TOKEN` environment variable when using `co-refactorer` command.
+
 
 ## Build
 
