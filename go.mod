@@ -9,6 +9,7 @@ require (
 	github.com/google/go-github/v65 v65.0.0
 	github.com/sashabaranov/go-openai v1.30.3
 	github.com/yuin/goldmark v1.7.4
+	google.golang.org/api v0.186.0
 )
 
 require (
@@ -42,7 +43,6 @@ require (
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	google.golang.org/api v0.186.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240617180043-68d350f18fd4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
 	google.golang.org/grpc v1.64.1 // indirect
