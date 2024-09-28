@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
@@ -11,15 +12,19 @@ import (
 
 type OpenAIAgent struct {
 	client *openai.Client
+	logger *slog.Logger
+	model  string
 }
 
-func NewOpenAIAgent(client *openai.Client) Agent {
+func NewOpenAIAgent(client *openai.Client, logger *slog.Logger) Agent {
 	return &OpenAIAgent{
 		client: client,
+		logger: logger,
 	}
 }
 
 func (a *OpenAIAgent) CreateRefactoringTarget(ctx context.Context, prompt string, model string, temperature float32) (*RefactoringTarget, error) {
+	a.model = model
 	functionDefinition := &openai.FunctionDefinition{
 		Name:        functionName,
 		Description: functionDescription,
@@ -53,7 +58,7 @@ func (a *OpenAIAgent) CreateRefactoringTarget(ctx context.Context, prompt string
 					Content: prompt,
 				},
 			},
-			Model:       model,
+			Model:       a.model,
 			Temperature: temperature,
 			Tools: []openai.Tool{
 				{
@@ -64,6 +69,7 @@ func (a *OpenAIAgent) CreateRefactoringTarget(ctx context.Context, prompt string
 		},
 	)
 	if err != nil {
+		// TODO: Wrap error
 		return nil, err
 	}
 
@@ -118,7 +124,7 @@ func (a *OpenAIAgent) CreateRefactoringResult(ctx context.Context, req *Refactor
 	resp, err := a.client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model:    openai.GPT4oMini,
+			Model:    a.model,
 			Messages: messages,
 		},
 	)
