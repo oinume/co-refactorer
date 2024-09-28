@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/generative-ai-go/genai"
+	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/sashabaranov/go-openai"
 	"google.golang.org/api/option"
 )
@@ -29,12 +30,20 @@ const (
 	functionParameter2Name        = "files"
 	functionParameter2Description = "List of target files to be refactored"
 
+	claudeAPIKeyEnv = "CLAUDE_API_KEY"
 	geminiAPIKeyEnv = "GEMINI_API_KEY"
 	openAIAPIKeyEnv = "OPENAI_API_KEY"
 )
 
 func NewAgent(model string, logger *slog.Logger) (Agent, error) {
-	if strings.HasPrefix(model, "gemini") {
+	if strings.HasPrefix(model, "claude") {
+		apiKey := os.Getenv(claudeAPIKeyEnv)
+		if apiKey == "" {
+			return nil, fmt.Errorf("Env '%s' must be defined for model %s", claudeAPIKeyEnv, model)
+		}
+		client := anthropic.NewClient(apiKey)
+		return NewClaudeAgent(client, logger), nil
+	} else if strings.HasPrefix(model, "gemini") {
 		apiKey := os.Getenv(geminiAPIKeyEnv)
 		if apiKey == "" {
 			return nil, fmt.Errorf("Env '%s' must be defined for model %s", geminiAPIKeyEnv, model)
@@ -50,6 +59,6 @@ func NewAgent(model string, logger *slog.Logger) (Agent, error) {
 			return nil, fmt.Errorf("Env '%s' must be defined for model %s", openAIAPIKeyEnv, model)
 		}
 		client := openai.NewClient(apiKey)
-		return NewOpenAIAgent(client), nil
+		return NewOpenAIAgent(client, logger), nil
 	}
 }
