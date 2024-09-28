@@ -45,15 +45,16 @@ You can run co-refactorer in two ways:
 
 First, Check out prompt for LLM.
 ```
-cat example-prompt1.txt
+cat example/prompt1.txt
 
-このPR(https://github.com/oinume/co-refactorer/pull/9)を参考にして、以下のファイルをリファクタリングしてください。
+You are an expert Go programmer. Please refactor the following files to use a `map[string]struct{...}` format instead of `[]struct{ name string ...}` using Table Driven Test as a reference from this PR (https://github.com/oinume/co-refactorer/pull/9)
+
 refactoring_request_test.go
 ```
 
 Then, run co-refactorer with the prompt.
 ```
-OPENAI_API_KEY='<YourAPIKey>' ./bin/co-refactorer < example-prompt1.txt
+OPENAI_API_KEY='<YourAPIKey>' ./bin/co-refactorer < example/prompt1.txt
 ```
 
 Then, co-refactorer will overwrite the target files with refactored code. After that, you may make a pull-request with the refactored file.
