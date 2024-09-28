@@ -1,0 +1,3 @@
+あなたはGo言語のエキスパートです。このPR(https://github.com/oinume/co-refactorer/pull/9)を参考にして、`[]struct{ name string ...}` 形式のコードを `map[string]struct{...}` 形式になるように、以下のファイルをリファクタリングしてください。
+
+refactoring_request_test.go

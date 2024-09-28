@@ -1,0 +1,3 @@
+You are an expert Go programmer. Please refactor the following files to use a `map[string]struct{...}` format instead of `[]struct{ name string ...}` using Table Driven Test as a reference from this PR (https://github.com/oinume/co-refactorer/pull/9)
+
+refactoring_request_test.go

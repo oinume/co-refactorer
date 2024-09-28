@@ -1,2 +1,0 @@
-このPR(https://github.com/oinume/co-refactorer/pull/9)を参考にして、以下のファイルをリファクタリングしてください。
-refactoring_request_test.go
