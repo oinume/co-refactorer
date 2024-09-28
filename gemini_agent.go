@@ -156,6 +156,7 @@ func (a *GeminiAgent) CreateRefactoringResult(ctx context.Context, req *Refactor
 			Response: functionResponse,
 		},
 	)
+
 	if err != nil {
 		return nil, err
 	}
