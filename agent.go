@@ -3,6 +3,7 @@ package corefactorer
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -32,7 +33,7 @@ const (
 	openAIAPIKeyEnv = "OPENAI_API_KEY"
 )
 
-func NewAgent(model string) (Agent, error) {
+func NewAgent(model string, logger *slog.Logger) (Agent, error) {
 	if strings.HasPrefix(model, "gemini") {
 		apiKey := os.Getenv(geminiAPIKeyEnv)
 		if apiKey == "" {
@@ -42,7 +43,7 @@ func NewAgent(model string) (Agent, error) {
 		if err != nil {
 			return nil, fmt.Errorf("genai.NewClient failed: %w", err)
 		}
-		return NewGeminiAgent(client), nil
+		return NewGeminiAgent(client, logger), nil
 	} else {
 		apiKey := os.Getenv(openAIAPIKeyEnv)
 		if apiKey == "" {

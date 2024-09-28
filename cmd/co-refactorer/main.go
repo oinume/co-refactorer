@@ -61,7 +61,7 @@ func (c *cli) run(args []string) int {
 	}
 	c.logger.Debug("prompt", slog.String("prompt", prompt))
 
-	agent, err := corefactorer.NewAgent(*flagModel)
+	agent, err := corefactorer.NewAgent(*flagModel, c.logger)
 	if err != nil {
 		c.outputError(err)
 		return ExitError
