@@ -23,36 +23,8 @@ func NewClaudeAgent(client *anthropic.Client, logger *slog.Logger) Agent {
 	}
 }
 
-// https://www.perplexity.ai/search/new?q=pending&newFrontendContextUUID=0be71ba0-2255-4aec-a9d7-4fe74861cc99
-
 func (a *ClaudeAgent) CreateRefactoringTarget(ctx context.Context, prompt string, modelName string, temperature float32) (*RefactoringTarget, error) {
 	a.model = anthropic.Model(modelName)
-
-	//tool := anthropic.ToolDefinition{
-	//	Name:        functionName,
-	//	Description: functionDescription,
-	//	InputSchema: jsonschema.Definition{
-	//		Type: jsonschema.Object,
-	//		Properties: map[string]jsonschema.Definition{
-	//			functionParameter1Name: {
-	//				Type:        jsonschema.Array,
-	//				Description: functionParameter1Description,
-	//				Items: &jsonschema.Definition{
-	//					Type: jsonschema.String,
-	//				},
-	//			},
-	//			functionParameter2Name: {
-	//				Type:        jsonschema.Array,
-	//				Description: functionParameter2Description,
-	//				Items: &jsonschema.Definition{
-	//					Type: jsonschema.String,
-	//				},
-	//			},
-	//		},
-	//		Required: []string{functionParameter1Name, functionParameter2Name},
-	//	},
-	//}
-
 	resp, err := a.client.CreateMessages(ctx, anthropic.MessagesRequest{
 		Model: a.model,
 		Messages: []anthropic.Message{
@@ -97,14 +69,6 @@ func (a *ClaudeAgent) CreateRefactoringTarget(ctx context.Context, prompt string
 		target.Files = append(target.Files, tmp.Files...)
 	}
 
-	//a.client.CreateMessages(ctx, anthropic.MessagesRequest{
-	//	Model: anthropic.Model(modelName),
-	//	Messages: []anthropic.Message{
-	//		anthropic.NewUserTextMessage(prompt),
-	//		anthropic.NewToolResultsMessage(toolUse.ID, toolResult, false),
-	//	},
-	//})
-
 	return target.Unique(), nil
 }
 
@@ -113,7 +77,6 @@ func (a *ClaudeAgent) CreateRefactoringResult(ctx context.Context, req *Refactor
 	if err != nil {
 		return nil, fmt.Errorf("failed to create assistance message: %w", err)
 	}
-	// fmt.Printf("--- assistanceMessage ---\n%s", assistanceMessage)
 
 	messages := []anthropic.Message{
 		anthropic.NewUserTextMessage(req.UserPrompt),
@@ -141,6 +104,7 @@ func (a *ClaudeAgent) CreateRefactoringResult(ctx context.Context, req *Refactor
 	if len(resp.Content) == 0 {
 		return nil, fmt.Errorf("no content in response")
 	}
+
 	for i, c := range resp.Content {
 		a.logger.Debug("CreateMessages response", slog.Int("index", i), slog.Any("content", c))
 	}
