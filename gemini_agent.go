@@ -24,45 +24,44 @@ func NewGeminiAgent(client *genai.Client, logger *slog.Logger) Agent {
 
 func (a *GeminiAgent) CreateRefactoringTarget(ctx context.Context, prompt string, modelName string, temperature float32) (*RefactoringTarget, error) {
 	model := a.client.GenerativeModel(modelName)
-	a.model = model
 	model.Temperature = &temperature
-	functionDefinition := &genai.FunctionDeclaration{
-		Name:        functionName,
-		Description: functionDescription,
-		Parameters: &genai.Schema{
-			Type: genai.TypeObject,
-			Properties: map[string]*genai.Schema{
-				functionParameter1Name: {
-					Type:        genai.TypeArray,
-					Description: functionParameter1Description,
-					Items: &genai.Schema{
-						Type: genai.TypeString,
+
+	tool := &genai.Tool{
+		FunctionDeclarations: []*genai.FunctionDeclaration{
+			{
+				Name:        functionName,
+				Description: functionDescription,
+				Parameters: &genai.Schema{
+					Type: genai.TypeObject,
+					Properties: map[string]*genai.Schema{
+						functionParameter1Name: {
+							Type:        genai.TypeArray,
+							Description: functionParameter1Description,
+							Items: &genai.Schema{
+								Type: genai.TypeString,
+							},
+						},
+						functionParameter2Name: {
+							Type:        genai.TypeArray,
+							Description: functionParameter2Description,
+							Items: &genai.Schema{
+								Type: genai.TypeString,
+							},
+						},
 					},
+					Required: []string{functionParameter1Name, functionParameter2Name},
 				},
-				functionParameter2Name: {
-					Type:        genai.TypeArray,
-					Description: functionParameter2Description,
-					Items: &genai.Schema{
-						Type: genai.TypeString,
-					},
-				},
-			},
-			Required: []string{functionParameter1Name, functionParameter2Name},
-		},
-	}
-	model.Tools = []*genai.Tool{
-		{
-			FunctionDeclarations: []*genai.FunctionDeclaration{
-				functionDefinition,
 			},
 		},
 	}
+	model.Tools = []*genai.Tool{tool}
 	//model.ToolConfig = &genai.ToolConfig{
 	//	FunctionCallingConfig: &genai.FunctionCallingConfig{
 	//		Mode: genai.FunctionCallingAuto,
 	//	},
 	//}
 
+	a.model = model
 	chatSession := model.StartChat()
 	resp, err := chatSession.SendMessage(ctx, genai.Text(prompt))
 	if err != nil {
