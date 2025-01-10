@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/google/go-github/v65/github"
-	"github.com/oinume/corefactorer"
+	corefactorer "github.com/oinume/corefactorer/pkg"
 	"github.com/sashabaranov/go-openai"
 )
 
