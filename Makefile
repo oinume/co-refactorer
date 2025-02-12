@@ -1,6 +1,6 @@
 NAME = co-refactorer
 GO_TEST ?= go test -v -race -p=1
-GOLANGCI_LINT_VERSION = v1.60.3
+GOLANGCI_LINT_VERSION = v1.64.2
 
 .PHONY: all
 all: build
