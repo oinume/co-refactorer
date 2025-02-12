@@ -8,7 +8,7 @@ require (
 	github.com/google/go-github/v64 v64.0.0
 	github.com/google/go-github/v65 v65.0.0
 	github.com/liushuangls/go-anthropic/v2 v2.13.0
-	github.com/sashabaranov/go-openai v1.36.1
+	github.com/sashabaranov/go-openai v1.37.0
 	github.com/yuin/goldmark v1.7.8
 	google.golang.org/api v0.215.0
 )
