@@ -49,25 +49,29 @@ func (a *OpenAIAgent) CreateRefactoringTarget(ctx context.Context, prompt string
 			Required: []string{functionParameter1Name, functionParameter2Name},
 		},
 	}
-	resp, err := a.client.CreateChatCompletion(
-		ctx,
-		openai.ChatCompletionRequest{
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: prompt,
-				},
-			},
-			Model:       a.model,
-			Temperature: temperature,
-			Tools: []openai.Tool{
-				{
-					Type:     openai.ToolTypeFunction,
-					Function: functionDefinition,
-				},
+
+	req := openai.ChatCompletionRequest{
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role:    openai.ChatMessageRoleUser,
+				Content: prompt,
 			},
 		},
-	)
+		Model: a.model,
+		Tools: []openai.Tool{
+			{
+				Type:     openai.ToolTypeFunction,
+				Function: functionDefinition,
+			},
+		},
+	}
+
+	// o3-mini doesn't accept temperature
+	if model != openai.O3Mini {
+		req.Temperature = temperature
+	}
+
+	resp, err := a.client.CreateChatCompletion(ctx, req)
 	if err != nil {
 		// TODO: Wrap error
 		return nil, err
@@ -121,13 +125,17 @@ func (a *OpenAIAgent) CreateRefactoringResult(ctx context.Context, req *Refactor
 		},
 	}...)
 
-	resp, err := a.client.CreateChatCompletion(
-		ctx,
-		openai.ChatCompletionRequest{
-			Model:    a.model,
-			Messages: messages,
-		},
-	)
+	chatReq := openai.ChatCompletionRequest{
+		Model:    a.model,
+		Messages: messages,
+	}
+
+	// o3-mini doesn't accept temperature
+	// if a.model != openai.O3Mini {
+	// 	chatReq.Temperature = 0.7
+	// }
+
+	resp, err := a.client.CreateChatCompletion(ctx, chatReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create chat completion: %w", err)
 	}
