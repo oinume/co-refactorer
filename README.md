@@ -6,7 +6,7 @@ NOTE: This is a prototype and not ready for production use. Use at your own risk
 ## Prerequisites
 
 - OpenAI API key
-- Go 1.23 or later
+- Go 1.24 or later
 - Make
 - (optional) GitHub Personal Access Token
   - If you want to use co-refactorer for private repository, you need to set `GITHUB_TOKEN` environment variable.
